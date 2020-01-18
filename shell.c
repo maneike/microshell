@@ -5,6 +5,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 
 int sh_cd(char **args);
@@ -68,7 +75,7 @@ int sh_exit(char **args) {
      obsługiwać polecenie exit, kończące działanie programu powłoki;
      */
     char* username = getenv("USER");
-    printf("Bye, %s! \n\n",username);
+    printf("Bye, %s%s%s! \n\n", ANSI_COLOR_RED, username, ANSI_COLOR_RESET);
     return 0;
     
 }
@@ -246,7 +253,7 @@ void sh_loop() {
     const char* path = getenv("PWD");
     
     do {
-    printf("%s@%s %s $ ", username, pcname, path);
+    printf("[%s%s@%s %s%s]\n%s$%s ", ANSI_COLOR_MAGENTA , username, pcname, ANSI_COLOR_CYAN, path, ANSI_COLOR_GREEN, ANSI_COLOR_RESET);
     line = sh_read_line();
     args = sh_split_line(line);
     status = sh_execute(args);
