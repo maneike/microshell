@@ -4,6 +4,10 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -14,6 +18,7 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
 
+int sh_cat(char **args);
 int sh_cd(char **args);
 int sh_help(char **args);
 int sh_exit(char **args);
@@ -22,6 +27,7 @@ int sh_exit(char **args);
 
 char *builtin_str[] = {
     
+    "cat",
     "cd",
     "exit",
     "help"
@@ -32,6 +38,7 @@ char *builtin_str[] = {
 
 int (*builtin_func[]) (char **) = {
     
+    &sh_cat,
     &sh_cd,
     &sh_exit,
     &sh_help,
@@ -44,6 +51,33 @@ int sh_num_builtins() {
     
     return sizeof(builtin_str) / sizeof(char *);
     
+}
+
+
+
+#define cat_BUFFER_SIZE 1024
+
+int sh_cat(char **args) {
+    
+    char buffer[cat_BUFFER_SIZE];
+    int fd_in, num;
+    char* file = args[1];
+    
+    if(args[1]==NULL) {
+        fprintf(stderr, "cat: expected argument to \"cat\"\n");
+    }
+    else {
+        fd_in=open(file, O_RDONLY);
+    
+        while((num = read(fd_in, &buffer, cat_BUFFER_SIZE))>0)
+        {
+            write(STDOUT_FILENO, &buffer, num);
+        }
+        close(fd_in);
+    }
+
+    return 1;
+
 }
 
 
@@ -88,6 +122,7 @@ int sh_help(char **args) {
      obsługiwać polecenie help, wyświetlające na ekranie informacje o autorze programu i oferowanych przez niego funkcjonalnościach;
      */
     int i;
+    
     printf("Softshell\n");
     printf("Martin Chelminiak\n");
     printf("Enter a command and hit enter.\n");
@@ -184,13 +219,15 @@ char *sh_read_line(void) {
     }
     position++;
 
-    /* realokacja przy przekroczeniu bufora */
+    /*
+     realokacja przy przepelnieniu bufora
+     */
     if (position >= bufsize) {
       bufsize += SH_RL_BUFSIZE;
       buffer = realloc(buffer, bufsize);
       if (!buffer) {
-        fprintf(stderr, "sh: allocation error\n");
-        exit(EXIT_FAILURE);
+          fprintf(stderr, "sh: allocation error\n");
+          exit(EXIT_FAILURE);
       }
     }
   }
@@ -209,23 +246,23 @@ char **sh_split_line(char *line) {
   char *token, **tokens_backup;
 
   if (!tokens) {
-    fprintf(stderr, "sh: allocation error\n");
-    exit(EXIT_FAILURE);
+      fprintf(stderr, "sh: allocation error\n");
+      exit(EXIT_FAILURE);
   }
 
   token = strtok(line, SH_TOK_DELIM);
   while (token != NULL) {
-    tokens[position] = token;
-    position++;
+      tokens[position] = token;
+      position++;
 
     if (position >= bufsize) {
-      bufsize += SH_TOK_BUFSIZE;
-      tokens_backup = tokens;
-      tokens = realloc(tokens, bufsize * sizeof(char*));
-      if (!tokens) {
-        free(tokens_backup);
-        fprintf(stderr, "sh: allocation error\n");
-        exit(EXIT_FAILURE);
+        bufsize += SH_TOK_BUFSIZE;
+        tokens_backup = tokens;
+        tokens = realloc(tokens, bufsize * sizeof(char*));
+        if (!tokens) {
+          free(tokens_backup);
+          fprintf(stderr, "sh: allocation error\n");
+          exit(EXIT_FAILURE);
       }
     }
 
