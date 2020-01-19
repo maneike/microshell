@@ -6,8 +6,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <dirent.h>
+void formatError();
 
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -22,6 +22,7 @@ int sh_cat(char **args);
 int sh_cd(char **args);
 int sh_help(char **args);
 int sh_exit(char **args);
+int sh_mv(char **args);
 
 
 
@@ -30,7 +31,8 @@ char *builtin_str[] = {
     "cat",
     "cd",
     "exit",
-    "help"
+    "help",
+    "mv"
     
 };
 
@@ -42,6 +44,7 @@ int (*builtin_func[]) (char **) = {
     &sh_cd,
     &sh_exit,
     &sh_help,
+    &sh_mv
     
 };
 
@@ -133,6 +136,81 @@ int sh_help(char **args) {
     }
     
     return 1;
+    
+}
+
+
+
+sh_mv(char **args) {
+    
+    char *file = args[1];
+    char *location = args[2];
+    char newplace[50];
+    
+    if (args[3]!=NULL) {
+        formatError();
+    }
+    else {
+        if(location[0]=='/') {
+            /*
+             sprawdza, czy input to sciezka
+             */
+                strcat(location,"/");
+                /*
+                 jesli tak, to przygotowywuje do przeniesienia na koniec sciezki
+                 */
+                strcat(location,file);
+                if(rename(file, location)== 0)
+                    printf("Successful\n");
+                else
+                    printf("Error:\nDirectory not found\n");
+            }
+            else {
+                DIR *isD;
+                isD = opendir(location);
+                /*
+                 sprawdza czy argument jest DIR'em w CWD
+                 */
+
+                if(isD==NULL) {
+                    if( rename(file,location)!= 0)
+                        printf("Error: File not moved\n");
+                    else
+                        printf("Successful\n");
+                }
+                else {
+                    char *ptrL;
+                    ptrL = getcwd(newplace, 50);
+                    /*
+                     obecna sciezka katalogu
+                     */
+                    strcat(newplace, "/");
+                    strcat(newplace, location);
+                    /*
+                     podczepienie lokacji mv do sciezki ptrL
+                     */
+                    strcat(newplace, "/");
+                    strcat(newplace, file);
+                    /*
+                     zatrzymanie oryginalnej nazwy pliku
+                     */
+                    if(rename(file, ptrL)!=-1)
+                        printf("Successful\n");
+                    else
+                        printf("Error:\nDirectory not found in CWD\n");
+                    closedir(isD);
+                }
+            }
+        }
+    return 1;
+    
+}
+
+
+
+void formatError() {
+    
+    printf("Usage:\n./mv foo.txt new.txt\n./mv foot.txt subdir\n");
     
 }
 
